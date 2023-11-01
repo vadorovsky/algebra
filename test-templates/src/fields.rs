@@ -83,6 +83,7 @@ macro_rules! __test_field {
 
         #[test]
         fn test_serialization() {
+            use ark_ff::BigInteger;
             use ark_serialize::*;
             use ark_std::UniformRand;
             for compress in [Compress::Yes, Compress::No] {
@@ -96,6 +97,7 @@ macro_rules! __test_field {
 
                     let mut rng = ark_std::test_rng();
 
+                    // Test serialization and deserization of random field elements.
                     for _ in 0..ITERATIONS {
                         let a = <$field>::rand(&mut rng);
                         {
@@ -134,9 +136,22 @@ macro_rules! __test_field {
                             }
                         }
                     }
+
+                    // Test deserialization of an element equal to modulus. As
+                    // it doesn't fit in a field, it should return an error.
+                    let mut eq_to_modulus = <$field as Field>::BasePrimeField::MODULUS.to_bytes_le();
+                    let mut cursor = Cursor::new(&mut eq_to_modulus);
+                    let deserialized = <$field>::deserialize_with_mode(&mut cursor, compress, validate);
+                    assert!(deserialized.is_err());
+
+                    // Test deserialization of an element represented by an array...
+                    let mut arr: [u8; 1] = [1];
+                    // let mut arr: [u8; 32] = [ 216, 137,  85, 159, 239, 194, 107, 138, 254,  68,  21,  16, 165,  41,  64, 148, 208, 198, 201,  59, 220, 102, 142,  81, 49, 251, 174, 183, 183, 182,   4,  32 ];
+                    let mut cursor = Cursor::new(&mut arr);
+                    let deserialized = <$field>::deserialize_with_mode(&mut cursor, compress, validate);
+                    assert!(deserialized.is_err());
                 }
             }
-
         }
 
         #[test]
