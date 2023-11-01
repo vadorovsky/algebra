@@ -453,16 +453,17 @@ impl<T: CanonicalDeserialize, const N: usize> Valid for [T; N] {
     }
 }
 
-impl<T: CanonicalDeserialize, const N: usize> CanonicalDeserialize for [T; N] {
+impl<T: CanonicalDeserialize + Copy + Default, const N: usize> CanonicalDeserialize for [T; N] {
     #[inline]
     fn deserialize_with_mode<R: Read>(
         mut reader: R,
         compress: Compress,
         validate: Validate,
     ) -> Result<Self, SerializationError> {
-        let result = core::array::from_fn(|_| {
-            T::deserialize_with_mode(&mut reader, compress, Validate::No).unwrap()
-        });
+        let mut result = [T::default(); N];
+        for item in result.iter_mut() {
+            *item = T::deserialize_with_mode(&mut reader, compress, Validate::No)?;
+        }
         if let Validate::Yes = validate {
             T::batch_check(result.iter())?
         }
